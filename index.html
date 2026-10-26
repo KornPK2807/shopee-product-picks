@@ -423,7 +423,7 @@ const isVertex=k=>/^AQ\./.test(k);
 const MODEL_PRESET=['gemini-3.5-flash','gemini-3.8-flash','gemini-3-flash-preview','gemini-3.5-flash-lite','gemini-3.1-flash-lite','gemini-3.1-pro-preview'];
 const notFound=e=>e.status===404||/not found|does not have access|not supported/i.test(e.message);
 const ls={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}};
-const TONES=['ป้ายยา ตื่นเต้น ชวนอยากได้ ยาว 4-6 บรรทัด','เล่าเรื่องเหมือนรีวิวจากคนใช้จริง เป็นกันเอง ยาว 5-8 บรรทัด','ดีลด่วน เร่งให้รีบกด สั้นกระชับ 3-5 บรรทัด','สั้นมาก 1-2 บรรทัด'];
+const TONES=['ป้ายยา ตื่นเต้น ชวนอยากได้ 2-3 บรรทัด','เล่าเหมือนรีวิวจากคนใช้จริง เป็นกันเอง 3-4 บรรทัด','ดีลด่วน เร่งให้รีบกด 2 บรรทัด','สั้นมาก บรรทัดเดียว'];
 // ดึงเฉพาะตัว key จากข้อความที่วาง: ตัดช่องว่าง อักษรล่องหน ภาษาไทย หรือข้อความอื่นที่ติดมา (header ส่งได้แค่ ASCII)
 const cleanKey=t=>{const s=String(t||'').normalize('NFKC'),m=s.match(/AIza[0-9A-Za-z_\-]{20,}|AQ\.[0-9A-Za-z_.\-]{10,}/);return m?m[0]:s.replace(/[^\x21-\x7e]+/g,'')};
 const maskKey=k=>k.length>10?k.slice(0,4)+'…'+k.slice(-4):'****';
@@ -505,7 +505,8 @@ ${withImg?'\nดูรูปสินค้าที่แนบมา แล้
 - ห้ามแต่งสเปก สรรพคุณ หรือคำอ้างที่ไม่มีในข้อมูล ห้ามอ้างผลทางการแพทย์
 - ${np?'ห้ามใส่ราคา ตัวเลขราคา หรือเปอร์เซ็นต์ส่วนลด':'ใส่ราคาได้ และบอกว่าราคาอาจเปลี่ยนตามโปร'}
 - ไม่ต้องใส่แฮชแท็กและลิงก์ (ระบบเติมให้เอง)
-- ใช้อีโมจิพอประมาณ ปิดท้ายด้วยประโยคชวนกดลิงก์ด้านล่าง
+- เขียนให้สั้นและกระชับที่สุด ห้ามเกินจำนวนบรรทัดที่กำหนด ไม่ต้องเกริ่นนำ ไม่ต้องเว้นบรรทัดว่าง
+- ใช้อีโมจิพอประมาณ ปิดท้ายด้วยคำชวนกดลิงก์สั้นๆ
 - ตอบเฉพาะตัวแคปชั่น ไม่ต้องมีคำอธิบายอื่น`}
 // รูปเล็กของสินค้าเป็น base64 ให้ Gemini ดู ถ้าโหลดไม่ได้ก็เขียนจากข้อความอย่างเดียว
 async function imgPart(u){try{const ac=new AbortController(),t=setTimeout(()=>ac.abort(),8000);

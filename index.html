@@ -424,12 +424,13 @@ const MODEL_PRESET=['gemini-3.5-flash','gemini-3.8-flash','gemini-3-flash-previe
 const notFound=e=>e.status===404||/not found|does not have access|not supported/i.test(e.message);
 const ls={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}};
 const TONES=['ป้ายยา ตื่นเต้น ชวนอยากได้ ยาว 4-6 บรรทัด','เล่าเรื่องเหมือนรีวิวจากคนใช้จริง เป็นกันเอง ยาว 5-8 บรรทัด','ดีลด่วน เร่งให้รีบกด สั้นกระชับ 3-5 บรรทัด','สั้นมาก 1-2 บรรทัด'];
-const cleanKey=t=>String(t||'').replace(/[\s\u200B-\u200D\uFEFF]+/g,'');   // ช่องว่าง/ขึ้นบรรทัด/อักษรล่องหนที่ติดมาตอนคัดลอก
+// ดึงเฉพาะตัว key จากข้อความที่วาง: ตัดช่องว่าง อักษรล่องหน ภาษาไทย หรือข้อความอื่นที่ติดมา (header ส่งได้แค่ ASCII)
+const cleanKey=t=>{const s=String(t||'').normalize('NFKC'),m=s.match(/AIza[0-9A-Za-z_\-]{20,}|AQ\.[0-9A-Za-z_.\-]{10,}/);return m?m[0]:s.replace(/[^\x21-\x7e]+/g,'')};
 const maskKey=k=>k.length>10?k.slice(0,4)+'…'+k.slice(-4):'****';
 const keyKind=k=>isVertex(k)?'Vertex AI':'AI Studio';
 function aiMsg(t){$('aiMsg').textContent=t}
 
-async function gemini(parts,model,key){
+async function gemini(parts,model,key){key=cleanKey(key);if(!key)throw new Error('ไม่พบ API key');
   const r=await fetch(`${isVertex(key)?VTX:GEM+'/models'}/${encodeURIComponent(model)}:generateContent`,{method:'POST',
     headers:{'content-type':'application/json','x-goog-api-key':key},
     body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{temperature:1}})});
@@ -440,7 +441,7 @@ async function gemini(parts,model,key){
   return t}
 
 // รายชื่อโมเดลที่ key AI Studio ใช้ได้ และสร้างข้อความได้
-async function geminiModels(key){const out=[];let tok='';
+async function geminiModels(key){key=cleanKey(key);const out=[];let tok='';
   for(let i=0;i<5;i++){const r=await fetch(`${GEM}/models?pageSize=200${tok?'&pageToken='+encodeURIComponent(tok):''}`,{headers:{'x-goog-api-key':key}});
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error?.message||'HTTP '+r.status);
     for(const m of j.models||[])if((m.supportedGenerationMethods||[]).includes('generateContent')&&/gemini/i.test(m.name))out.push({id:m.name.replace(/^models\//,''),label:m.displayName||m.name});
@@ -478,7 +479,7 @@ $('aiEye').onclick=()=>$('aiKey').classList.toggle('masked');
 $('aiPaste').onclick=async()=>{try{const t=cleanKey(await navigator.clipboard.readText());if(!t)return toast('คลิปบอร์ดว่าง คัดลอก key มาก่อน');
   $('aiKey').value=t;aiMsg(`วาง key ${keyKind(t)} แล้ว: ${maskKey(t)} · กด “บันทึก” ต่อได้เลย`)}
   catch(e){$('aiKey').focus();toast('อ่านคลิปบอร์ดไม่ได้ กดค้างในช่องแล้วเลือก “วาง” แทน')}};
-$('aiSave').onclick=()=>{const k=cleanKey($('aiKey').value);if(!k)return aiMsg('ใส่ API key ก่อน');ls.set('gemKey',k);toast(`บันทึก key ${keyKind(k)} ในเครื่องนี้แล้ว`);aiCheck()};
+$('aiSave').onclick=()=>{const raw=$('aiKey').value.trim(),k=cleanKey(raw);if(!k)return aiMsg('ใส่ API key ก่อน');if(k!==raw)$('aiKey').value=k;ls.set('gemKey',k);toast(`บันทึก key ${keyKind(k)} ในเครื่องนี้แล้ว`);aiCheck()};
 $('aiDel').onclick=()=>{ls.set('gemKey','');ls.set('gemModel','');$('aiModel').value='';$('aiModels').innerHTML='';aiUI();toast('ลบ key ออกจากเครื่องนี้แล้ว')};
 $('aiCheck').onclick=aiCheck;
 $('aiModel').addEventListener('change',()=>{const m=$('aiModel').value.trim();ls.set('gemModel',m);if(m)aiMsg('เลือกโมเดล '+m+' · กด “ทดสอบโมเดล” เพื่อลอง')});

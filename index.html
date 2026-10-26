@@ -107,6 +107,16 @@ details.note summary{font-weight:600;color:var(--ink);cursor:pointer}
 .capbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .capbtns .btn{min-height:42px;font-size:14px;display:flex;align-items:center;justify-content:center;text-decoration:none;flex:initial}
 .capnote{font-size:12px;color:var(--mute)}
+.capnote a{color:var(--acc)}
+.caprow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.caprow .btn{flex:1 1 auto;padding:6px 10px}
+.caprow #capAISet{flex:0 0 40px}
+.capsh label.ck{flex-direction:row;align-items:center;gap:6px;color:var(--ink);font-size:14px;flex:0 0 auto}
+.capsh label.ck input{width:20px;height:20px;padding:0;accent-color:var(--acc)}
+.keyrow{display:flex;gap:6px}
+.keyrow input{flex:1;min-width:0}
+.keyrow .btn{flex:0 0 44px}
+#aiMsg{white-space:pre-wrap;word-break:break-word}
 .feedbtn{display:inline-flex;margin-top:8px;padding:6px 12px}
 .prog{height:8px;background:var(--chip);border-radius:4px;overflow:hidden}
 .prog i{display:block;height:100%;width:0;background:var(--acc2);transition:width .2s}
@@ -117,6 +127,7 @@ details.note summary{font-weight:600;color:var(--ink);cursor:pointer}
   <h1>สินค้าน่าทำ: คอมเยอะ + ขายดี</h1>
   <div class="sub" id="meta"></div>
   <button class="btn feedbtn" id="feedOpen">🔄 อัปเดตฟีด</button>
+  <button class="btn feedbtn" id="aiOpen">✨ ตั้งค่า AI</button>
 
   <div class="kpis" id="kpis"></div>
 
@@ -164,6 +175,7 @@ details.note summary{font-weight:600;color:var(--ink);cursor:pointer}
 <div class="capbg" id="capBg" hidden><div class="capsh" role="dialog" aria-label="แคปชั่น Facebook">
   <div class="caph"><b>✍️ แคปชั่น + แฮชแท็ก Facebook</b><button class="capx" id="capX" aria-label="ปิด">×</button></div>
   <div class="capstyles" id="capStyles"></div>
+  <div class="caprow"><label class="ck"><input type="checkbox" id="capNoPrice"> ไม่ใส่ราคา</label><button class="btn aff" id="capAI">✨ ให้ AI เขียน</button><button class="btn" id="capPrompt">คัดลอกพรอมต์</button><button class="btn" id="capAISet" aria-label="ตั้งค่า AI">⚙️</button></div>
   <label>ลิงก์ Aff ของคุณ (แปลงแล้ววางตรงนี้ แคปชั่นจะใส่ให้อัตโนมัติ)
     <input id="capLink" type="url" inputmode="url" placeholder="https://s.shopee.co.th/…" autocomplete="off"></label>
   <label>แคปชั่น (แก้ไขได้)<textarea id="capText"></textarea></label>
@@ -190,6 +202,15 @@ details.note summary{font-weight:600;color:var(--ink);cursor:pointer}
     <button class="btn wide" id="feedSave" hidden>💾 ดาวน์โหลดหน้าเว็บ (ฝังข้อมูลใหม่)</button>
     <button class="btn wide" id="feedReset" hidden>กลับไปใช้ข้อมูลที่ฝังในไฟล์</button>
   </div>
+</div></div>
+<div class="capbg" id="aiBg" hidden><div class="capsh" role="dialog" aria-label="ตั้งค่า AI">
+  <div class="caph"><b>✨ ตั้งค่า AI (Gemini)</b><button class="capx" id="aiX" aria-label="ปิด">×</button></div>
+  <div class="capnote">ใช้ได้ทั้ง key จาก <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> (AIza…) และ key Vertex AI ของ Google Cloud (AQ.…) · key เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่อยู่ในไฟล์หน้าเว็บและไม่ขึ้น GitHub</div>
+  <label>Gemini API key<div class="keyrow"><input id="aiKey" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="AIza… หรือ AQ.…"><button class="btn" id="aiEye" type="button" aria-label="แสดง/ซ่อน key">👁</button></div></label>
+  <div class="capbtns"><button class="btn aff" id="aiSave">บันทึก</button><button class="btn" id="aiDel">ลบ key</button></div>
+  <label>โมเดล (เลือกจากรายการ หรือพิมพ์ชื่อรุ่นเอง)<input id="aiModel" list="aiModels" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="gemini-2.5-flash"><datalist id="aiModels"></datalist></label>
+  <div class="capbtns"><button class="btn" id="aiCheck">เช็ก key</button><button class="btn ok" id="aiTest">ทดสอบโมเดล</button></div>
+  <div class="hint" id="aiMsg">ยังไม่ได้ใส่ key</div>
 </div></div>
 <div class="toast" id="toast"></div>
 
@@ -279,19 +300,19 @@ function tagsFor(p,cat){const t=[...TAG_BASE,...(TAG_CAT[cat]||[])];if(p.d>=20||
 const n0=n=>Math.round(n).toLocaleString('th-TH'),pr=n=>'฿'+(n<100?(+n.toFixed(2)).toLocaleString('th-TH'):n0(n));
 const soldTxt=s=>s>=1000?(Math.floor(s/100)/10).toLocaleString('th-TH')+'K':n0(s);
 const STYLES=[
- ['ป้ายยา',(p,n,l)=>`🔥 ${n}\n\nขายไปแล้ว ${soldTxt(p.sold)}+ ชิ้น${p.r?` ⭐ ${p.r.toFixed(1)}/5`:''}\n💸 ราคาตอนนี้ ${pr(p.p)}${p.op>p.p?` (ปกติ ${pr(p.op)})`:''}\n${p.off?'✅ ร้าน Shopee Mall ของแท้\n':''}\n👉 กดสั่งเลย: ${l}`],
- ['รีวิวเล่าเรื่อง',(p,n,l)=>`ใครกำลังหาของแบบนี้อยู่ ตัวนี้คนซื้อเยอะมาก ${soldTxt(p.sold)}+ ชิ้นแล้ว${p.r?` รีวิว ${p.r.toFixed(1)} ดาว`:''} ✨\n\n📦 ${n}\n💰 ${pr(p.p)}${p.op>p.p?` จาก ${pr(p.op)}`:''}\n\nเก็บไว้ในตะกร้าก่อนก็ได้ เผื่อมีโค้ดลดเพิ่ม 👇\n${l}`],
- ['ดีลด่วน',(p,n,l)=>`⚡ ดีลวันนี้ ⚡\n${n}\n\n${p.op>p.p?`จาก ${pr(p.op)} เหลือ ${pr(p.p)}${p.d?` (-${Math.round(p.d)}%)`:''} 😱`:`เพียง ${pr(p.p)} 😱`}\nยอดขาย ${soldTxt(p.sold)}+ ชิ้น\n\nราคาอาจเปลี่ยนตามโปร เช็กก่อนกดนะ\n🛒 ${l}`],
- ['สั้นๆ',(p,n,l)=>`${n}\n${pr(p.p)} · ขายแล้ว ${soldTxt(p.sold)}+ ชิ้น\n🛒 ${l}`]
+ ['ป้ายยา',(p,n,l,np)=>`🔥 ${n}\n\nขายไปแล้ว ${soldTxt(p.sold)}+ ชิ้น${p.r?` ⭐ ${p.r.toFixed(1)}/5`:''}\n${np?'':`💸 ราคาตอนนี้ ${pr(p.p)}${p.op>p.p?` (ปกติ ${pr(p.op)})`:''}\n`}${p.off?'✅ ร้าน Shopee Mall ของแท้\n':''}\n👉 กดสั่งเลย: ${l}`],
+ ['รีวิวเล่าเรื่อง',(p,n,l,np)=>`ใครกำลังหาของแบบนี้อยู่ ตัวนี้คนซื้อเยอะมาก ${soldTxt(p.sold)}+ ชิ้นแล้ว${p.r?` รีวิว ${p.r.toFixed(1)} ดาว`:''} ✨\n\n📦 ${n}\n${np?'':`💰 ${pr(p.p)}${p.op>p.p?` จาก ${pr(p.op)}`:''}\n`}\nเก็บไว้ในตะกร้าก่อนก็ได้ เผื่อมีโค้ดลดเพิ่ม 👇\n${l}`],
+ ['ดีลด่วน',(p,n,l,np)=>`⚡ ดีลวันนี้ ⚡\n${n}\n\n${np?'โปรแรงช่วงนี้ กดดูราคาล่าสุดในลิงก์เลย 😱':p.op>p.p?`จาก ${pr(p.op)} เหลือ ${pr(p.p)}${p.d?` (-${Math.round(p.d)}%)`:''} 😱`:`เพียง ${pr(p.p)} 😱`}\nยอดขาย ${soldTxt(p.sold)}+ ชิ้น\n\n${np?'':'ราคาอาจเปลี่ยนตามโปร เช็กก่อนกดนะ\n'}🛒 ${l}`],
+ ['สั้นๆ',(p,n,l,np)=>`${n}\n${np?'':pr(p.p)+' · '}ขายแล้ว ${soldTxt(p.sold)}+ ชิ้น\n🛒 ${l}`]
 ];
 function capRender(keepText){const c=CAP,link=($('capLink').value.trim()||'[วางลิงก์ Aff ของคุณ]');
   $('capStyles').innerHTML=STYLES.map((s,i)=>`<button data-s="${i}" class="${i===c.style?'on':''}">${s[0]}</button>`).join('');
   $('capTags').innerHTML=c.tags.map((t,i)=>`<button data-t="${i}" class="${c.off.has(i)?'off':''}">${esc(t)}</button>`).join('');
-  if(!keepText)$('capText').value=STYLES[c.style][1](c.p,c.name,link)+'\n\n'+c.tags.filter((t,i)=>!c.off.has(i)).join(' ')}
-function openCap(p){CAP={p,name:shortName(p.t),style:0,tags:tagsFor(p,cur),off:new Set(),link:clean(p.url)};$('capLink').value=AFFL[p.id]||'';capRender();$('capBg').hidden=false}
+  if(!keepText)$('capText').value=(c.ai?`${c.ai}\n\n🛒 ${link}`:STYLES[c.style][1](c.p,c.name,link,$('capNoPrice').checked))+'\n\n'+c.tags.filter((t,i)=>!c.off.has(i)).join(' ')}
+function openCap(p){CAP={p,name:shortName(p.t),style:0,ai:null,tags:tagsFor(p,cur),off:new Set(),link:clean(p.url)};$('capLink').value=AFFL[p.id]||'';capRender();$('capBg').hidden=false}
 $('capX').onclick=()=>{$('capBg').hidden=true};
 $('capBg').addEventListener('click',e=>{if(e.target.id==='capBg')$('capBg').hidden=true});
-$('capStyles').onclick=e=>{const s=e.target.dataset.s;if(s==null)return;CAP.style=+s;capRender()};
+$('capStyles').onclick=e=>{const s=e.target.dataset.s;if(s==null)return;CAP.style=+s;CAP.ai=null;capRender()};
 $('capTags').onclick=e=>{const t=e.target.dataset.t;if(t==null)return;CAP.off.has(+t)?CAP.off.delete(+t):CAP.off.add(+t);capRender()};
 $('capLink').addEventListener('input',()=>{const v=$('capLink').value.trim();if(v)AFFL[CAP.p.id]=v;else delete AFFL[CAP.p.id];try{localStorage.setItem('afflinks',JSON.stringify(AFFL))}catch(e){}capRender()});
 $('capCopyLink').onclick=()=>copy(CAP.link).then(ok=>toast(ok?'คัดลอกลิงก์สินค้าแล้ว → ไปแปลง Aff':'คัดลอกไม่สำเร็จ'));
@@ -363,7 +384,7 @@ function fProduct(g){const imgs=[];for(const c of F_IMGCOLS){const u=g(c);if(u&&
 // หน้าเว็บนี้ทั้งไฟล์ แต่เปลี่ยนข้อมูลใน const D= เป็นชุดใหม่ เอาไปเปิดในมือถือได้
 function pageWith(data){const doc=document.documentElement.cloneNode(true);
   ['meta','kpis','cats','rates','subs','grid','tips','banN','capStyles','capTags','vImgs'].forEach(id=>{const e=doc.querySelector('#'+id);if(e)e.textContent=''});
-  doc.querySelectorAll('#viewer,#capBg,#feedBg').forEach(e=>e.hidden=true);
+  doc.querySelectorAll('#viewer,#capBg,#feedBg,#aiBg').forEach(e=>e.hidden=true);
   const sc=[...doc.querySelectorAll('script')].find(s=>s.textContent.includes('const D=')),src=sc.textContent,i=src.indexOf('const D=')+8,j=src.indexOf(';\nconst FEED=',i);
   const {local,...clean}=data;
   sc.textContent=src.slice(0,i)+JSON.stringify(clean).replace(/<\//g,'<\\/')+src.slice(j);
@@ -392,6 +413,108 @@ $('feedGo').onclick=async()=>{const f=$('feedFile').files[0];if(!f)return toast(
     else{$('feedMsg').textContent=sum+' · เก็บในเบราว์เซอร์ไม่ได้ (พื้นที่ไม่พอ) กด “ดาวน์โหลดหน้าเว็บ” แล้วเปิดไฟล์นั้นแทน';feedUI()}
   }catch(e){$('feedMsg').textContent='อัปเดตไม่สำเร็จ: '+e.message;$('feedProg').hidden=true}
   finally{FCTL=null;$('feedGo').disabled=false;$('feedStop').disabled=true}};
+// ---- AI เขียนแคปชั่นด้วย Gemini: key เก็บใน localStorage ของเครื่องนี้เท่านั้น ไม่อยู่ในไฟล์หน้าเว็บ ----
+// key AIza… = Google AI Studio, key AQ.… = Google Cloud Vertex AI (express mode) ใช้โมเดล Gemini ชุดเดียวกัน
+const GEM='https://generativelanguage.googleapis.com/v1beta',VTX='https://aiplatform.googleapis.com/v1/publishers/google/models';
+const isVertex=k=>/^AQ\./.test(k);
+// Vertex ดึงรายชื่อด้วย API key ไม่ได้ จึงไล่ลองตามลำดับนี้ (Gemini 2.5 ถูกปลดจาก Vertex เมื่อ ต.ค. 2026)
+const MODEL_PRESET=['gemini-3.5-flash','gemini-3.8-flash','gemini-3-flash-preview','gemini-3.5-flash-lite','gemini-3.1-flash-lite','gemini-3.1-pro-preview'];
+const notFound=e=>e.status===404||/not found|does not have access|not supported/i.test(e.message);
+const ls={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}};
+const TONES=['ป้ายยา ตื่นเต้น ชวนอยากได้ ยาว 4-6 บรรทัด','เล่าเรื่องเหมือนรีวิวจากคนใช้จริง เป็นกันเอง ยาว 5-8 บรรทัด','ดีลด่วน เร่งให้รีบกด สั้นกระชับ 3-5 บรรทัด','สั้นมาก 1-2 บรรทัด'];
+const maskKey=k=>k.length>10?k.slice(0,4)+'…'+k.slice(-4):'****';
+const keyKind=k=>isVertex(k)?'Vertex AI':'AI Studio';
+function aiMsg(t){$('aiMsg').textContent=t}
+
+async function gemini(parts,model,key){
+  const r=await fetch(`${isVertex(key)?VTX:GEM+'/models'}/${encodeURIComponent(model)}:generateContent`,{method:'POST',
+    headers:{'content-type':'application/json','x-goog-api-key':key},
+    body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{temperature:1}})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error(j.error?.message||'HTTP '+r.status);e.status=r.status;throw e}
+  const c=j.candidates?.[0],t=(c?.content?.parts||[]).filter(x=>!x.thought).map(x=>x.text||'').join('').trim();
+  if(!t)throw new Error(j.promptFeedback?.blockReason?'ถูกบล็อก: '+j.promptFeedback.blockReason:'โมเดลไม่ได้ตอบข้อความ ('+(c?.finishReason||'?')+')');
+  return t}
+
+// รายชื่อโมเดลที่ key AI Studio ใช้ได้ และสร้างข้อความได้
+async function geminiModels(key){const out=[];let tok='';
+  for(let i=0;i<5;i++){const r=await fetch(`${GEM}/models?pageSize=200${tok?'&pageToken='+encodeURIComponent(tok):''}`,{headers:{'x-goog-api-key':key}});
+    const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error?.message||'HTTP '+r.status);
+    for(const m of j.models||[])if((m.supportedGenerationMethods||[]).includes('generateContent')&&/gemini/i.test(m.name))out.push({id:m.name.replace(/^models\//,''),label:m.displayName||m.name});
+    if(!(tok=j.nextPageToken))break}
+  return out}
+// ใส่รายชื่อให้เลือก; ถ้าช่องโมเดลยังว่าง เลือกรุ่น Flash ตัวหลักให้
+function fillModels(list){$('aiModels').innerHTML=list.map(m=>`<option value="${esc(m.id)}">${esc(m.label)}</option>`).join('');
+  const i=$('aiModel');if(!i.value.trim()){const p=list.find(m=>/flash/i.test(m.id)&&!/lite|image|tts|live|audio|embed|preview|exp/i.test(m.id))||list[0];if(p)i.value=p.id}
+  ls.set('gemModel',i.value.trim())}
+function aiUI(){const k=ls.get('gemKey'),m=ls.get('gemModel');$('aiKey').value=k;$('aiKey').type='password';$('aiModel').value=m;
+  if(!$('aiModels').options.length)$('aiModels').innerHTML=MODEL_PRESET.map(id=>`<option value="${id}"></option>`).join('');
+  aiMsg(k?`บันทึก key ${keyKind(k)} ไว้แล้ว: ${maskKey(k)}`+(m?` · โมเดล ${m}`:''):'ยังไม่ได้ใส่ key')}
+function openAI(){aiUI();$('aiBg').hidden=false}
+async function aiCheck(){const k=$('aiKey').value.trim();if(!k)return aiMsg('ใส่ API key ก่อน');
+  aiMsg(`กำลังเช็ก key ${keyKind(k)}…`);$('aiCheck').disabled=true;
+  const unsaved=k!==ls.get('gemKey')?' · ยังไม่ได้บันทึก key':'';
+  try{
+    if(isVertex(k)){
+      // Vertex ไม่ให้ดึงรายชื่อโมเดลด้วย API key: ลองรุ่นที่กรอกไว้ก่อน แล้วไล่ตามรายการจนเจอรุ่นที่โปรเจกต์นี้ใช้ได้
+      const cur=$('aiModel').value.trim(),tries=[...new Set([cur,...MODEL_PRESET].filter(Boolean))],miss=[];
+      $('aiModels').innerHTML=MODEL_PRESET.map(id=>`<option value="${id}"></option>`).join('');
+      for(const m of tries){aiMsg(`กำลังเช็ก key Vertex AI… ลองรุ่น ${m}`);
+        try{await gemini([{text:'ตอบว่า OK'}],m,k);$('aiModel').value=m;ls.set('gemModel',m);
+          aiMsg(`✅ key Vertex AI ใช้ได้ · โมเดล ${m}`+(miss.length?`\n(ไม่มีในโปรเจกต์นี้: ${miss.join(', ')})`:'')+unsaved);return}
+        catch(e){if(!notFound(e))throw e;miss.push(m)}}
+      aiMsg(`⚠️ key ใช้ได้ แต่ไม่พบรุ่นที่ใช้ได้เลย (ลองแล้ว: ${miss.join(', ')})\nพิมพ์ชื่อรุ่นจากหน้า Model Garden ของ Google Cloud แล้วกด “ทดสอบโมเดล”`)
+    }else{const list=await geminiModels(k);if(!list.length)throw new Error('key ใช้ได้ แต่ไม่พบโมเดล Gemini ที่สร้างข้อความได้');
+      fillModels(list);aiMsg(`✅ key AI Studio ใช้ได้ · พบ ${list.length} โมเดล · เลือก ${$('aiModel').value}`+unsaved)}}
+  catch(e){aiMsg('❌ เช็กไม่ผ่าน: '+e.message)}finally{$('aiCheck').disabled=false}}
+$('aiOpen').onclick=openAI;$('capAISet').onclick=openAI;
+$('aiX').onclick=()=>{$('aiBg').hidden=true};
+$('aiBg').addEventListener('click',e=>{if(e.target.id==='aiBg')$('aiBg').hidden=true});
+$('aiEye').onclick=()=>{const i=$('aiKey');i.type=i.type==='password'?'text':'password'};
+$('aiSave').onclick=()=>{const k=$('aiKey').value.trim();if(!k)return aiMsg('ใส่ API key ก่อน');ls.set('gemKey',k);toast(`บันทึก key ${keyKind(k)} ในเครื่องนี้แล้ว`);aiCheck()};
+$('aiDel').onclick=()=>{ls.set('gemKey','');ls.set('gemModel','');$('aiModel').value='';$('aiModels').innerHTML='';aiUI();toast('ลบ key ออกจากเครื่องนี้แล้ว')};
+$('aiCheck').onclick=aiCheck;
+$('aiModel').addEventListener('change',()=>{const m=$('aiModel').value.trim();ls.set('gemModel',m);if(m)aiMsg('เลือกโมเดล '+m+' · กด “ทดสอบโมเดล” เพื่อลอง')});
+$('aiTest').onclick=async()=>{const k=$('aiKey').value.trim(),m=$('aiModel').value.trim();if(!k)return aiMsg('ใส่ API key ก่อน');if(!m)return aiMsg('เลือกหรือพิมพ์ชื่อโมเดลก่อน');
+  aiMsg(`กำลังทดสอบ ${m} (${keyKind(k)})…`);$('aiTest').disabled=true;const t0=performance.now();
+  try{const t=await gemini([{text:'เขียนประโยคชวนซื้อกระติกน้ำเก็บความเย็น 1 ประโยค ภาษาไทย'}],m,k);ls.set('gemModel',m);
+    aiMsg(`✅ ${m} ใช้งานได้ · ${((performance.now()-t0)/1000).toFixed(1)} วิ\nตัวอย่าง: ${t}`)}
+  catch(e){aiMsg(`❌ ${m} ใช้ไม่ได้: ${e.message}`)}finally{$('aiTest').disabled=false}};
+
+// พรอมต์จากข้อมูลสินค้า ใช้ทั้งตอนเรียก Gemini และปุ่มคัดลอกพรอมต์
+function aiPrompt(c,withImg){const p=c.p,np=$('capNoPrice').checked,sub=[p.c2,p.c3].filter(Boolean).join(' > ');
+  const facts=[`ชื่อสินค้า: ${p.t}`,`หมวด: ${TH[cur]||cur}${sub?` (${sub})`:''}`,`ขายแล้ว: ${soldTxt(p.sold)}+ ชิ้น`,
+    p.r?`คะแนนรีวิว: ${p.r.toFixed(1)}/5`:'',p.off?'ร้าน: Shopee Mall (ของแท้)':p.pref?'ร้าน: ร้านแนะนำ':'',
+    np?'':`ราคา: ${pr(p.p)}${p.op>p.p?` (ปกติ ${pr(p.op)})`:''}`].filter(Boolean).join('\n');
+  return `เขียนแคปชั่นโพสต์ Facebook ภาษาไทย ชวนคนกดลิงก์ไปซื้อสินค้านี้ใน Shopee
+โทน: ${TONES[c.style]}
+
+ข้อมูลสินค้า:
+${facts}
+${withImg?'\nดูรูปสินค้าที่แนบมา แล้วเล่าจุดเด่นที่เห็นได้จริงจากรูป\n':''}
+กติกา:
+- เล่าจุดเด่น การใช้งาน และเหมาะกับใคร ไม่ต้องลอกชื่อสินค้ายาวๆ ทั้งชื่อ
+- ห้ามแต่งสเปก สรรพคุณ หรือคำอ้างที่ไม่มีในข้อมูล ห้ามอ้างผลทางการแพทย์
+- ${np?'ห้ามใส่ราคา ตัวเลขราคา หรือเปอร์เซ็นต์ส่วนลด':'ใส่ราคาได้ และบอกว่าราคาอาจเปลี่ยนตามโปร'}
+- ไม่ต้องใส่แฮชแท็กและลิงก์ (ระบบเติมให้เอง)
+- ใช้อีโมจิพอประมาณ ปิดท้ายด้วยประโยคชวนกดลิงก์ด้านล่าง
+- ตอบเฉพาะตัวแคปชั่น ไม่ต้องมีคำอธิบายอื่น`}
+// รูปเล็กของสินค้าเป็น base64 ให้ Gemini ดู ถ้าโหลดไม่ได้ก็เขียนจากข้อความอย่างเดียว
+async function imgPart(u){try{const ac=new AbortController(),t=setTimeout(()=>ac.abort(),8000);
+  const b=await (await fetch(u+'_tn',{signal:ac.signal})).blob();clearTimeout(t);if(!/^image\//.test(b.type))return null;
+  const data=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=no;r.readAsDataURL(b)});
+  return {inlineData:{mimeType:b.type,data}}}catch(e){return null}}
+
+try{$('capNoPrice').checked=ls.get('capNoPrice')==='1'}catch(e){}
+$('capNoPrice').addEventListener('change',()=>{ls.set('capNoPrice',$('capNoPrice').checked?'1':'');if(!CAP.ai)capRender()});
+$('capPrompt').onclick=()=>copy(aiPrompt(CAP,false)).then(ok=>toast(ok?'คัดลอกพรอมต์แล้ว ไปวางในแอป Gemini/Claude ได้เลย (แนบรูปสินค้าไปด้วยจะดีขึ้น)':'คัดลอกไม่สำเร็จ'));
+$('capAI').onclick=async()=>{const k=ls.get('gemKey'),m=ls.get('gemModel');
+  if(!k||!m){toast('ตั้งค่า Gemini API key ก่อน');return openAI()}
+  const c=CAP,b=$('capAI');b.disabled=true;b.textContent='กำลังเขียน…';
+  try{const img=await imgPart(c.p.img),t=await gemini([...(img?[img]:[]),{text:aiPrompt(c,!!img)}],m,k);
+    if(CAP!==c)return;c.ai=t;capRender();toast('AI เขียนให้แล้ว แก้ต่อได้ หรือกดอีกครั้งเพื่อเขียนใหม่')}
+  catch(e){toast('AI เขียนไม่สำเร็จ: '+e.message.slice(0,120))}
+  finally{b.disabled=false;b.textContent='✨ ให้ AI เขียน'}};
 </script>
 </body>
 </html>

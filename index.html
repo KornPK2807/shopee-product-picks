@@ -116,6 +116,8 @@ details.note summary{font-weight:600;color:var(--ink);cursor:pointer}
 .keyrow{display:flex;gap:6px}
 .keyrow input{flex:1;min-width:0}
 .keyrow .btn{flex:0 0 44px}
+.keyrow #aiPaste{flex:0 0 auto;padding:6px 10px}
+.masked{-webkit-text-security:disc;text-security:disc}
 #aiMsg{white-space:pre-wrap;word-break:break-word}
 .feedbtn{display:inline-flex;margin-top:8px;padding:6px 12px}
 .prog{height:8px;background:var(--chip);border-radius:4px;overflow:hidden}
@@ -206,7 +208,7 @@ details.note summary{font-weight:600;color:var(--ink);cursor:pointer}
 <div class="capbg" id="aiBg" hidden><div class="capsh" role="dialog" aria-label="ตั้งค่า AI">
   <div class="caph"><b>✨ ตั้งค่า AI (Gemini)</b><button class="capx" id="aiX" aria-label="ปิด">×</button></div>
   <div class="capnote">ใช้ได้ทั้ง key จาก <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> (AIza…) และ key Vertex AI ของ Google Cloud (AQ.…) · key เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่อยู่ในไฟล์หน้าเว็บและไม่ขึ้น GitHub</div>
-  <label>Gemini API key<div class="keyrow"><input id="aiKey" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="AIza… หรือ AQ.…"><button class="btn" id="aiEye" type="button" aria-label="แสดง/ซ่อน key">👁</button></div></label>
+  <label>Gemini API key<div class="keyrow"><input id="aiKey" class="masked" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="off" data-1p-ignore data-lpignore="true" placeholder="AIza… หรือ AQ.…"><button class="btn" id="aiPaste" type="button" aria-label="วาง key จากคลิปบอร์ด">📋 วาง</button><button class="btn" id="aiEye" type="button" aria-label="แสดง/ซ่อน key">👁</button></div></label>
   <div class="capbtns"><button class="btn aff" id="aiSave">บันทึก</button><button class="btn" id="aiDel">ลบ key</button></div>
   <label>โมเดล (เลือกจากรายการ หรือพิมพ์ชื่อรุ่นเอง)<input id="aiModel" list="aiModels" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="gemini-2.5-flash"><datalist id="aiModels"></datalist></label>
   <div class="capbtns"><button class="btn" id="aiCheck">เช็ก key</button><button class="btn ok" id="aiTest">ทดสอบโมเดล</button></div>
@@ -422,6 +424,7 @@ const MODEL_PRESET=['gemini-3.5-flash','gemini-3.8-flash','gemini-3-flash-previe
 const notFound=e=>e.status===404||/not found|does not have access|not supported/i.test(e.message);
 const ls={get:k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}};
 const TONES=['ป้ายยา ตื่นเต้น ชวนอยากได้ ยาว 4-6 บรรทัด','เล่าเรื่องเหมือนรีวิวจากคนใช้จริง เป็นกันเอง ยาว 5-8 บรรทัด','ดีลด่วน เร่งให้รีบกด สั้นกระชับ 3-5 บรรทัด','สั้นมาก 1-2 บรรทัด'];
+const cleanKey=t=>String(t||'').replace(/[\s\u200B-\u200D\uFEFF]+/g,'');   // ช่องว่าง/ขึ้นบรรทัด/อักษรล่องหนที่ติดมาตอนคัดลอก
 const maskKey=k=>k.length>10?k.slice(0,4)+'…'+k.slice(-4):'****';
 const keyKind=k=>isVertex(k)?'Vertex AI':'AI Studio';
 function aiMsg(t){$('aiMsg').textContent=t}
@@ -447,11 +450,11 @@ async function geminiModels(key){const out=[];let tok='';
 function fillModels(list){$('aiModels').innerHTML=list.map(m=>`<option value="${esc(m.id)}">${esc(m.label)}</option>`).join('');
   const i=$('aiModel');if(!i.value.trim()){const p=list.find(m=>/flash/i.test(m.id)&&!/lite|image|tts|live|audio|embed|preview|exp/i.test(m.id))||list[0];if(p)i.value=p.id}
   ls.set('gemModel',i.value.trim())}
-function aiUI(){const k=ls.get('gemKey'),m=ls.get('gemModel');$('aiKey').value=k;$('aiKey').type='password';$('aiModel').value=m;
+function aiUI(){const k=ls.get('gemKey'),m=ls.get('gemModel');$('aiKey').value=k;$('aiKey').classList.add('masked');$('aiModel').value=m;
   if(!$('aiModels').options.length)$('aiModels').innerHTML=MODEL_PRESET.map(id=>`<option value="${id}"></option>`).join('');
   aiMsg(k?`บันทึก key ${keyKind(k)} ไว้แล้ว: ${maskKey(k)}`+(m?` · โมเดล ${m}`:''):'ยังไม่ได้ใส่ key')}
 function openAI(){aiUI();$('aiBg').hidden=false}
-async function aiCheck(){const k=$('aiKey').value.trim();if(!k)return aiMsg('ใส่ API key ก่อน');
+async function aiCheck(){const k=cleanKey($('aiKey').value);if(!k)return aiMsg('ใส่ API key ก่อน');
   aiMsg(`กำลังเช็ก key ${keyKind(k)}…`);$('aiCheck').disabled=true;
   const unsaved=k!==ls.get('gemKey')?' · ยังไม่ได้บันทึก key':'';
   try{
@@ -470,12 +473,16 @@ async function aiCheck(){const k=$('aiKey').value.trim();if(!k)return aiMsg('ใ
 $('aiOpen').onclick=openAI;$('capAISet').onclick=openAI;
 $('aiX').onclick=()=>{$('aiBg').hidden=true};
 $('aiBg').addEventListener('click',e=>{if(e.target.id==='aiBg')$('aiBg').hidden=true});
-$('aiEye').onclick=()=>{const i=$('aiKey');i.type=i.type==='password'?'text':'password'};
-$('aiSave').onclick=()=>{const k=$('aiKey').value.trim();if(!k)return aiMsg('ใส่ API key ก่อน');ls.set('gemKey',k);toast(`บันทึก key ${keyKind(k)} ในเครื่องนี้แล้ว`);aiCheck()};
+$('aiEye').onclick=()=>$('aiKey').classList.toggle('masked');
+// iOS: ปุ่มวางอ่านจากคลิปบอร์ดโดยตรง (Safari จะขึ้นปุ่ม "วาง" ให้กดยืนยัน)
+$('aiPaste').onclick=async()=>{try{const t=cleanKey(await navigator.clipboard.readText());if(!t)return toast('คลิปบอร์ดว่าง คัดลอก key มาก่อน');
+  $('aiKey').value=t;aiMsg(`วาง key ${keyKind(t)} แล้ว: ${maskKey(t)} · กด “บันทึก” ต่อได้เลย`)}
+  catch(e){$('aiKey').focus();toast('อ่านคลิปบอร์ดไม่ได้ กดค้างในช่องแล้วเลือก “วาง” แทน')}};
+$('aiSave').onclick=()=>{const k=cleanKey($('aiKey').value);if(!k)return aiMsg('ใส่ API key ก่อน');ls.set('gemKey',k);toast(`บันทึก key ${keyKind(k)} ในเครื่องนี้แล้ว`);aiCheck()};
 $('aiDel').onclick=()=>{ls.set('gemKey','');ls.set('gemModel','');$('aiModel').value='';$('aiModels').innerHTML='';aiUI();toast('ลบ key ออกจากเครื่องนี้แล้ว')};
 $('aiCheck').onclick=aiCheck;
 $('aiModel').addEventListener('change',()=>{const m=$('aiModel').value.trim();ls.set('gemModel',m);if(m)aiMsg('เลือกโมเดล '+m+' · กด “ทดสอบโมเดล” เพื่อลอง')});
-$('aiTest').onclick=async()=>{const k=$('aiKey').value.trim(),m=$('aiModel').value.trim();if(!k)return aiMsg('ใส่ API key ก่อน');if(!m)return aiMsg('เลือกหรือพิมพ์ชื่อโมเดลก่อน');
+$('aiTest').onclick=async()=>{const k=cleanKey($('aiKey').value),m=$('aiModel').value.trim();if(!k)return aiMsg('ใส่ API key ก่อน');if(!m)return aiMsg('เลือกหรือพิมพ์ชื่อโมเดลก่อน');
   aiMsg(`กำลังทดสอบ ${m} (${keyKind(k)})…`);$('aiTest').disabled=true;const t0=performance.now();
   try{const t=await gemini([{text:'เขียนประโยคชวนซื้อกระติกน้ำเก็บความเย็น 1 ประโยค ภาษาไทย'}],m,k);ls.set('gemModel',m);
     aiMsg(`✅ ${m} ใช้งานได้ · ${((performance.now()-t0)/1000).toFixed(1)} วิ\nตัวอย่าง: ${t}`)}
